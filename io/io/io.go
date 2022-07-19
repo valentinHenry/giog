@@ -5,7 +5,7 @@ import (
 )
 
 type IO[A any] interface {
-	run(*Universe) runResult[A]
+	run(*Universe) (IO[A], *A, Cause)
 	UnsafeRun() (A, error)
 	Void() IO[v.Void]
 }

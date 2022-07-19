@@ -18,7 +18,7 @@ type _IOExitSuccess[A any] struct {
 	success A
 }
 
-func (e *_IOExitSuccess[A]) Void() VIO {
+func (s *_IOExitSuccess[A]) Void() VIO {
 	return &_IOExitSuccess[v.Void]{v.Void{}}
 }
 
@@ -27,10 +27,10 @@ type _IOSync[A any] struct {
 	eval  func(context.Context) A
 }
 
-func (e *_IOSync[A]) Void() VIO {
+func (s *_IOSync[A]) Void() VIO {
 	return &_IOSync[v.Void]{
-		trace: e.trace,
-		eval:  func(ctx context.Context) v.Void { e.eval(ctx); return v.Void{} },
+		trace: s.trace,
+		eval:  func(ctx context.Context) v.Void { s.eval(ctx); return v.Void{} },
 	}
 }
 
@@ -70,8 +70,8 @@ type _IOFailure[A any] struct {
 	onFailure func(Cause) IO[A]
 }
 
-func (s *_IOFailure[A]) Void() VIO {
-	return _As[A, v.Void](s.trace, s, v.Void{})
+func (f *_IOFailure[A]) Void() VIO {
+	return _As[A, v.Void](f.trace, f, v.Void{})
 }
 
 type _IOSuccessFailure[A1, A2 any] struct {
@@ -81,8 +81,8 @@ type _IOSuccessFailure[A1, A2 any] struct {
 	onFailure func(Cause) IO[A2]
 }
 
-func (s *_IOSuccessFailure[A1, A2]) Void() VIO {
-	return _As[A2, v.Void](s.trace, s, v.Void{})
+func (sf *_IOSuccessFailure[A1, A2]) Void() VIO {
+	return _As[A2, v.Void](sf.trace, sf, v.Void{})
 }
 
 type _IOWhileLoop struct {

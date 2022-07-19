@@ -3,6 +3,7 @@ package io
 import (
 	"context"
 	"errors"
+	"sync"
 )
 
 type Universe struct {
@@ -40,16 +41,13 @@ func InterpretAsync[A any](io IO[A]) (A, error) {
 
 // InterpretSync executes the IO and waits for all async functions to end.
 func InterpretSync[A any](io IO[A]) (A, error) {
-	nbWaitingChan := make(chan int)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	wg := sync.WaitGroup{}
 
 	universe := &Universe{
-		Context:         ctx,
-		Uninterruptible: ctx,
-		waitForMe:       func() { nbWaitingChan <- 1 },
-		done:            func() { nbWaitingChan <- -1 },
+		Context:         context.Background(),
+		Uninterruptible: context.Background(),
+		waitForMe:       func() { wg.Add(1) },
+		done:            func() { wg.Done() },
 	}
 
 	v, cause := runEffect(universe, io)
@@ -58,16 +56,6 @@ func InterpretSync[A any](io IO[A]) (A, error) {
 		return *v, errors.New(cause.appendTraceIfNecessary(getTrace(1)).sPrettyPrint())
 	}
 
-	waitingNb := 0
-	for true {
-		select {
-		case action := <-nbWaitingChan:
-			waitingNb += action
-
-			if waitingNb == 0 {
-				return *v, nil
-			}
-		}
-	}
+	wg.Wait()
 	return *v, nil
 }

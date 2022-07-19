@@ -16,143 +16,137 @@ func runEffect[A any](universe *Universe, io IO[A]) (ioRes *A, ioError Cause) {
 		default:
 			// TODO find a way not to make a useless function call
 			// Using type(~pattern~) matching with any instead of run is impossible
-			res := curr.run(universe)
-			curr = res.curr
-			ioError = res.ioError
-			ioRes = res.ioRes
+			curr, ioRes, ioError = curr.run(universe)
 		}
 	}
 
 	return ioRes, ioError
 }
 
-func (s *_IOSuccess[A, B]) run(universe *Universe) runResult[B] {
+func (s *_IOSuccess[A, B]) run(universe *Universe) (curr IO[B], ioRes *B, ioError Cause) {
 	res, prevErr := runEffect(universe, s.previous)
 
 	if prevErr != nil {
-		return retErr[B](prevErr.appendTraceIfNecessary(s.trace))
+		return nil, nil, prevErr.appendTraceIfNecessary(s.trace)
 	}
-	return retCurr(s.onSuccess(*res))
+	return s.onSuccess(*res), nil, nil
 }
+
 func (s *_IOSuccess[A, B]) UnsafeRun() (B, error) {
 	return unsafeRun[B](s)
 }
 
-func (f *_IOFailure[A]) run(universe *Universe) runResult[A] {
+func (f *_IOFailure[A]) run(universe *Universe) (IO[A], *A, Cause) {
 	res, prevErr := runEffect(universe, f.previous)
 
 	if prevErr == nil {
-		return retRes(res)
+		return nil, res, nil
 	}
 
 	switch prevErr.(type) {
 	case *Cancellation:
-		return retErr[A](prevErr)
+		return nil, nil, prevErr
 	default:
-		return retCurr[A](f.onFailure(prevErr)) // append ?
+		return f.onFailure(prevErr), nil, nil
 	}
 }
 func (f *_IOFailure[A]) UnsafeRun() (A, error) {
 	return unsafeRun[A](f)
 }
 
-func (sf *_IOSuccessFailure[A, B]) run(universe *Universe) runResult[B] {
+func (sf *_IOSuccessFailure[A, B]) run(universe *Universe) (IO[B], *B, Cause) {
 	res, prevErr := runEffect(universe, sf.previous)
 
 	if prevErr != nil {
 		switch prevErr.(type) {
 		case *Cancellation:
-			return retErr[B](prevErr)
+			return nil, nil, prevErr
 		default:
-			return retCurr(sf.onFailure(prevErr))
+			return sf.onFailure(prevErr), nil, nil
 		}
 	}
 
-	return retCurr(sf.onSuccess(*res))
+	return sf.onSuccess(*res), nil, nil
 }
-func (f *_IOSuccessFailure[A, B]) UnsafeRun() (B, error) {
-	return unsafeRun[B](f)
+func (sf *_IOSuccessFailure[A, B]) UnsafeRun() (B, error) {
+	return unsafeRun[B](sf)
 }
 
-func (s *_IOExitSuccess[A]) run(_ *Universe) runResult[A] {
+func (s *_IOExitSuccess[A]) run(_ *Universe) (IO[A], *A, Cause) {
 	res := s.success
-	return retRes(&res)
+	return nil, &res, nil
 }
-func (f *_IOExitSuccess[A]) UnsafeRun() (A, error) {
-	return unsafeRun[A](f)
-}
-
-func (e *_IOExitError[A]) run(_ *Universe) runResult[A] {
-	return retErr[A](e.cause)
-}
-func (f *_IOExitError[A]) UnsafeRun() (A, error) {
-	return unsafeRun[A](f)
+func (s *_IOExitSuccess[A]) UnsafeRun() (A, error) {
+	return unsafeRun[A](s)
 }
 
-func (s *_IOSync[A]) run(universe *Universe) runResult[A] {
+func (e *_IOExitError[A]) run(_ *Universe) (IO[A], *A, Cause) {
+	return nil, nil, e.cause
+}
+func (e *_IOExitError[A]) UnsafeRun() (A, error) {
+	return unsafeRun[A](e)
+}
+
+func (s *_IOSync[A]) run(universe *Universe) (IO[A], *A, Cause) {
 	res := s.eval(universe.Context)
-	return retRes(&res)
+	return nil, &res, nil
 }
-func (f *_IOSync[A]) UnsafeRun() (A, error) {
-	return unsafeRun[A](f)
+func (s *_IOSync[A]) UnsafeRun() (A, error) {
+	return unsafeRun[A](s)
 }
 
-func (us *_IOUniverseSwitch[A]) run(universe *Universe) runResult[A] {
+func (us *_IOUniverseSwitch[A]) run(universe *Universe) (IO[A], *A, Cause) {
 	tmpUniverse := us.get(universe)
 	ioRes, ioError := runEffect(tmpUniverse, us.withUniverses(universe, tmpUniverse))
 	us.release(tmpUniverse)
-	return runResult[A]{
-		curr:    nil,
-		ioRes:   ioRes,
-		ioError: ioError,
-	}
+	return nil, ioRes, ioError
 }
-func (f *_IOUniverseSwitch[A]) UnsafeRun() (A, error) {
-	return unsafeRun[A](f)
+func (us *_IOUniverseSwitch[A]) UnsafeRun() (A, error) {
+	return unsafeRun[A](us)
 }
 
-func (wl *_IOWhileLoop) run(universe *Universe) runResult[v.Void] {
+func (wl *_IOWhileLoop) run(universe *Universe) (VIO, *v.Void, Cause) {
 	cRes, cErr := runEffect(universe, wl.cond)
 	for ; cErr == nil && *cRes; cRes, cErr = runEffect(universe, wl.cond) {
 		select {
 		case <-universe.Context.Done(): // Error in context, not carrying-on
-			return retErr[v.Void](makeCancellationCause())
+			return nil, nil, makeCancellationCause()
 		default:
 			if _, err := runEffect(universe, wl.do); err != nil {
-				return retErr[v.Void](err.appendTraceIfNecessary(wl.trace))
+				return nil, nil, err.appendTraceIfNecessary(wl.trace)
 			}
 		}
 	}
 
 	if cErr != nil {
-		return retErr[v.Void](cErr.appendTraceIfNecessary(wl.trace))
+		return nil, nil, cErr.appendTraceIfNecessary(wl.trace)
 	}
 
-	return retRes(&v.Void{})
+	return nil, &v.Void{}, nil
 }
 func (wl *_IOWhileLoop) UnsafeRun() (v.Void, error) {
 	return unsafeRun[v.Void](wl)
 }
 
-func (oc *_IOOnCancel[A]) run(universe *Universe) runResult[A] {
+func (oc *_IOOnCancel[A]) run(universe *Universe) (IO[A], *A, Cause) {
 	res, prevErr := runEffect(universe, oc.previous)
 
 	if prevErr != nil {
 		switch prevErr.(type) {
 		case *Cancellation:
-			return retCurr(oc.onCancel)
+			return oc.onCancel, nil, nil
 		default:
-			return retErr[A](prevErr.appendTraceIfNecessary(oc.trace))
+			return nil, nil, prevErr.appendTraceIfNecessary(oc.trace)
 		}
 	}
 
-	return retRes(res)
+	return nil, res, nil
 }
 func (oc *_IOOnCancel[A]) UnsafeRun() (A, error) {
 	return unsafeRun[A](oc)
 }
 
-func (i *_IOInterruptFast[A]) run(universe *Universe) runResult[A] {
+func (i *_IOInterruptFast[A]) run(universe *Universe) (IO[A], *A, Cause) {
 	resChan := make(chan tuples.T2[*A, Cause])
 
 	go func(resChan chan tuples.T2[*A, Cause], universe *Universe) {
@@ -162,20 +156,20 @@ func (i *_IOInterruptFast[A]) run(universe *Universe) runResult[A] {
 
 	select {
 	case <-universe.Context.Done(): // Error in context, not carrying-on
-		return retErr[A](makeCancellationCause())
+		return nil, nil, makeCancellationCause()
 	case yielded := <-resChan:
 		res, err := yielded.Values()
 		if err != nil {
-			return retErr[A](err.appendTraceIfNecessary(i.trace))
+			return nil, nil, err.appendTraceIfNecessary(i.trace)
 		}
-		return retRes(res)
+		return nil, res, nil
 	}
 }
 func (i *_IOInterruptFast[A]) UnsafeRun() (A, error) {
 	return unsafeRun[A](i)
 }
 
-func (a *_IOAsync[A]) run(universe *Universe) runResult[v.Void] {
+func (a *_IOAsync[A]) run(universe *Universe) (VIO, *v.Void, Cause) {
 	asyncUniverse := universe.CloneWithContext(a.ctx)
 
 	a.runAsync(func() (A, Cause) {
@@ -187,41 +181,11 @@ func (a *_IOAsync[A]) run(universe *Universe) runResult[v.Void] {
 		return *a, c
 	})
 
-	return retRes(&v.Void{})
+	return nil, &v.Void{}, nil
 }
 
 func (a *_IOAsync[A]) UnsafeRun() (v.Void, error) {
 	return unsafeRun[v.Void](a)
-}
-
-type runResult[A any] struct {
-	curr    IO[A]
-	ioRes   *A
-	ioError Cause
-}
-
-func retCurr[A any](curr IO[A]) runResult[A] {
-	return runResult[A]{
-		curr:    curr,
-		ioRes:   nil,
-		ioError: nil,
-	}
-}
-
-func retRes[A any](res *A) runResult[A] {
-	return runResult[A]{
-		curr:    nil,
-		ioRes:   res,
-		ioError: nil,
-	}
-}
-
-func retErr[A any](err Cause) runResult[A] {
-	return runResult[A]{
-		curr:    nil,
-		ioRes:   nil,
-		ioError: err,
-	}
 }
 
 func unsafeRun[A any](io IO[A]) (A, error) {

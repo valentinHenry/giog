@@ -22,9 +22,9 @@ func (u *Universe) CloneWithContext(c context.Context) *Universe {
 	}
 }
 
-// InterpretAsync execute the IO and returns the sync result A or error
-// Unlike InterpretSync, it does not wait on any async non-waited effects in the runtime
-func InterpretAsync[A any](io IO[A]) (A, error) {
+// EvalAsync execute the IO and returns the sync result A or error
+// Unlike EvalSync, it does not wait on any async non-waited effects in the runtime
+func EvalAsync[A any](io IO[A]) (A, error) {
 	universe := &Universe{
 		Context:         context.Background(),
 		Uninterruptible: context.Background(),
@@ -39,8 +39,8 @@ func InterpretAsync[A any](io IO[A]) (A, error) {
 	return *v, nil
 }
 
-// InterpretSync executes the IO and waits for all async functions to end.
-func InterpretSync[A any](io IO[A]) (A, error) {
+// EvalSync executes the IO and waits for all async functions to end.
+func EvalSync[A any](io IO[A]) (A, error) {
 	wg := sync.WaitGroup{}
 
 	universe := &Universe{

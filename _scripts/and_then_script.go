@@ -34,7 +34,9 @@ func andThenFlatMap(curr int, until int) string {
 
 func andThenN(curr int) string {
 	return fmt.Sprintf(
-		"func AndThen%d[%s any](%s) IO[T%d] {\n\treturn _AndThen%d(getTrace(1), %s)\n}",
+		"// AndThen%d executes sequentially the %d IOs and returns the value of the last one.\nfunc AndThen%d[%s any](%s) IO[T%d] {\n\treturn _AndThen%d(getTrace(1), %s)\n}",
+		curr,
+		curr,
 		curr,
 		typeParams(curr, "T"),
 		andThenParams(curr),

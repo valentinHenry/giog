@@ -46,7 +46,9 @@ func accumulateIOBody(curr int, until int) string {
 
 func accumulateION(curr int) string {
 	return fmt.Sprintf(
-		"func Accumulate%d[%s any](%s) IO[tuples.T%d[%s]] {\n\treturn _Accumulate%d(getTrace(1), %s)\n}",
+		"//Accumulate%d evaluates sequentially the %d IOs and returns a tuple made of all IOs evaluated values.\nfunc Accumulate%d[%s any](%s) IO[tuples.T%d[%s]] {\n\treturn _Accumulate%d(getTrace(1), %s)\n}",
+		curr,
+		curr,
 		curr,
 		typeParams(curr, "T"),
 		accumulateParams(curr, "IO"),
@@ -96,7 +98,9 @@ func accumulateRIOBody(curr int, until int) string {
 
 func accumulateRION(curr int) string {
 	return fmt.Sprintf(
-		"func AccumulateRIO%d[%s any](%s) RIO[tuples.T%d[%s]] {\n\treturn _AccumulateRIO%d(getTrace(1), %s)\n}",
+		"//AccumulateRIO%d evaluates sequentially the %d RIOs and returns a tuple made of all RIOs evaluated values.\nfunc AccumulateRIO%d[%s any](%s) RIO[tuples.T%d[%s]] {\n\treturn _AccumulateRIO%d(getTrace(1), %s)\n}",
+		curr,
+		curr,
 		curr,
 		typeParams(curr, "T"),
 		accumulateParams(curr, "RIO"),

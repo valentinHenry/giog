@@ -5,7 +5,7 @@ import (
 	stdos "os"
 )
 
-// TODO ass a functional interface to File
+// TODO add a functional interface to File
 
 func Open(name string) io.RIO[*File] {
 	return OpenFile(name, O_RDONLY, 0)

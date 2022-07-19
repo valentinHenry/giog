@@ -327,3 +327,7 @@ func Timed[A any](io IO[A]) IO[t.T2[time.Duration, A]] {
 }
 
 func Void() VIO { return _Pure(v.Void{}) }
+
+func AndThenK[A any](io IO[A]) func(any) IO[A] {
+	return func(a any) IO[A] { return io }
+}

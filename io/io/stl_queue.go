@@ -2,9 +2,9 @@ package io
 
 import (
 	"context"
-	dll "github.com/valentinHenry/giog/collections/double_link_list"
-	o "github.com/valentinHenry/giog/monads/option"
-	v "github.com/valentinHenry/giog/void"
+	dll "github.com/valentinHenry/giog/utils/collections/double_link_list"
+	o "github.com/valentinHenry/giog/utils/monads/option"
+	v "github.com/valentinHenry/giog/utils/void"
 	r "github.com/valentinHenry/refined"
 	"math"
 	"sync"

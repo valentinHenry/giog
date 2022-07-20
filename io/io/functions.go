@@ -2,11 +2,11 @@ package io
 
 import (
 	"context"
-	f "github.com/valentinHenry/giog/functions"
-	e "github.com/valentinHenry/giog/monads/either"
-	o "github.com/valentinHenry/giog/monads/option"
-	t "github.com/valentinHenry/giog/tuples"
-	v "github.com/valentinHenry/giog/void"
+	f "github.com/valentinHenry/giog/utils/functions"
+	e "github.com/valentinHenry/giog/utils/monads/either"
+	o "github.com/valentinHenry/giog/utils/monads/option"
+	t "github.com/valentinHenry/giog/utils/tuples"
+	v "github.com/valentinHenry/giog/utils/void"
 	r "github.com/valentinHenry/refined"
 	"time"
 )
@@ -310,16 +310,16 @@ func AsyncAll[T any](maxConcurrency o.Option[r.PosInt], asyncIos func(RunAsync A
 	return _AsyncAll(getTrace(1), maxConcurrency, asyncIos, yield)
 }
 
-func Fork_[A any](_trace *Trace, io IO[A]) VIO {
-	return _Fork(_trace, io).Void()
+func Fork_[A any](io IO[A]) VIO {
+	return _Fork(getTrace(1), io).Void()
 }
 
-func Fork[A any](_trace *Trace, io IO[A]) IO[IO[A]] {
-	return _Fork(_trace, io)
+func Fork[A any](io IO[A]) IO[IO[A]] {
+	return _Fork(getTrace(1), io)
 }
 
-func UnsafeForkAndForget[A any](_trace *Trace, io IO[A]) VIO {
-	return _UnsafeForkAndForget(_trace, io)
+func UnsafeForkAndForget[A any](io IO[A]) VIO {
+	return _UnsafeForkAndForget(getTrace(1), io)
 }
 
 func Timed[A any](io IO[A]) IO[t.T2[time.Duration, A]] {

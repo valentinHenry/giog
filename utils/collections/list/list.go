@@ -1,6 +1,6 @@
 package list
 
-import o "github.com/valentinHenry/giog/monads/option"
+import o "github.com/valentinHenry/giog/utils/monads/option"
 
 type List[T any] interface {
 	Append(v T) List[T]

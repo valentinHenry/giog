@@ -2,8 +2,8 @@ package io
 
 import (
 	"context"
-	"github.com/valentinHenry/giog/tuples"
-	v "github.com/valentinHenry/giog/void"
+	"github.com/valentinHenry/giog/utils/tuples"
+	v "github.com/valentinHenry/giog/utils/void"
 )
 
 func runEffect[A any](universe *Universe, io IO[A]) (ioRes *A, ioError Cause) {

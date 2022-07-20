@@ -2,7 +2,7 @@
 
 package functions
 
-import "github.com/valentinHenry/giog/tuples"
+import "github.com/valentinHenry/giog/utils/tuples"
 
 func Identity[A any](a A) A {
 	return a

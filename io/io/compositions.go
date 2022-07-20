@@ -2,7 +2,7 @@
 
 package io
 
-import "github.com/valentinHenry/giog/tuples"
+import "github.com/valentinHenry/giog/utils/tuples"
 
 // AndThen2 executes sequentially the 2 IOs and returns the value of the last one.
 func AndThen2[T1, T2 any](v1 IO[T1], v2 IO[T2]) IO[T2] {

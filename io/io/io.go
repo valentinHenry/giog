@@ -1,7 +1,7 @@
 package io
 
 import (
-	v "github.com/valentinHenry/giog/void"
+	v "github.com/valentinHenry/giog/utils/void"
 )
 
 type IO[A any] interface {

@@ -3,7 +3,7 @@ package io
 import (
 	"errors"
 	"fmt"
-	l "github.com/valentinHenry/giog/collections/list"
+	l "github.com/valentinHenry/giog/utils/collections/list"
 	"reflect"
 	"strings"
 )

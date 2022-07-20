@@ -4,8 +4,8 @@ import (
 	"fmt"
 	iofmt "github.com/valentinHenry/giog/io/fmt"
 	"github.com/valentinHenry/giog/io/io"
-	"github.com/valentinHenry/giog/monads/either"
-	v "github.com/valentinHenry/giog/void"
+	"github.com/valentinHenry/giog/utils/monads/either"
+	v "github.com/valentinHenry/giog/utils/void"
 	fio "io"
 )
 

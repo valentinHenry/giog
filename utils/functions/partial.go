@@ -1,7 +1,7 @@
 package functions
 
 import (
-	o "github.com/valentinHenry/giog/monads/option"
+	o "github.com/valentinHenry/giog/utils/monads/option"
 )
 
 type Product[A, B any] interface{}

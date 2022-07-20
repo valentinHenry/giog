@@ -1,8 +1,8 @@
 package io
 
 import (
-	t "github.com/valentinHenry/giog/tuples"
-	v "github.com/valentinHenry/giog/void"
+	t "github.com/valentinHenry/giog/utils/tuples"
+	v "github.com/valentinHenry/giog/utils/void"
 )
 
 type RIO[A any] interface {

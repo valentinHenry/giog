@@ -2,12 +2,12 @@ package io
 
 import (
 	"context"
-	f "github.com/valentinHenry/giog/functions"
-	e "github.com/valentinHenry/giog/monads/either"
-	o "github.com/valentinHenry/giog/monads/option"
-	p "github.com/valentinHenry/giog/pipes"
-	t "github.com/valentinHenry/giog/tuples"
-	v "github.com/valentinHenry/giog/void"
+	f "github.com/valentinHenry/giog/utils/functions"
+	e "github.com/valentinHenry/giog/utils/monads/either"
+	o "github.com/valentinHenry/giog/utils/monads/option"
+	p "github.com/valentinHenry/giog/utils/pipes"
+	t "github.com/valentinHenry/giog/utils/tuples"
+	v "github.com/valentinHenry/giog/utils/void"
 	r "github.com/valentinHenry/refined"
 	"golang.org/x/sync/errgroup"
 	"time"

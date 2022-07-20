@@ -2,7 +2,7 @@
 
 package io
 
-import "github.com/valentinHenry/giog/tuples"
+import "github.com/valentinHenry/giog/utils/tuples"
 
 func _AndThen2[T1, T2 any](_trace *Trace, v1 IO[T1], v2 IO[T2]) IO[T2] {
 	return _FlatMap(_trace, v1, func(_ T1) IO[T2] { return v2 })

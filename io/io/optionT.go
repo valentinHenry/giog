@@ -1,6 +1,6 @@
 package io
 
-import o "github.com/valentinHenry/giog/monads/option"
+import o "github.com/valentinHenry/giog/utils/monads/option"
 
 type OptionT[A any] IO[o.Option[A]]
 

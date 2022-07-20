@@ -1,10 +1,10 @@
 package either
 
 import (
-	fn "github.com/valentinHenry/giog/functions"
-	o "github.com/valentinHenry/giog/monads/option"
-	"github.com/valentinHenry/giog/tuples"
-	v "github.com/valentinHenry/giog/void"
+	fn "github.com/valentinHenry/giog/utils/functions"
+	o "github.com/valentinHenry/giog/utils/monads/option"
+	"github.com/valentinHenry/giog/utils/tuples"
+	v "github.com/valentinHenry/giog/utils/void"
 )
 
 type Either[L, R any] interface {

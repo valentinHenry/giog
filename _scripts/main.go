@@ -32,7 +32,7 @@ func WriteAll(root string) io.VIO {
 	writeFunctionsFile := io.UseRIO(os.Create(fmt.Sprint(root, "functions/functions.go")), func(file *os.File) io.VIO {
 		return io.AndThen3(
 			printHeader(file, "functions"),
-			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/tuples\""),
+			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/utils/tuples\""),
 			writeFunctionsFunctions(file, 30),
 		)
 	})
@@ -40,7 +40,7 @@ func WriteAll(root string) io.VIO {
 	writeIoCompositionsFile := io.UseRIO(os.Create(fmt.Sprint(root, "io/io/compositions.go")), func(file *os.File) io.VIO {
 		return io.AndThen5(
 			printHeader(file, "io"),
-			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/tuples\""),
+			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/utils/tuples\""),
 			writeAndThenFunctions(file, 30),
 			writeIoAccumulateFunctions(file, 30),
 			writeIoBindFunctions(file, 30),
@@ -50,7 +50,7 @@ func WriteAll(root string) io.VIO {
 	writeIoInternalCompositionsFile := io.UseRIO(os.Create(fmt.Sprint(root, "io/io/internal_compositions.go")), func(file *os.File) io.VIO {
 		return io.AndThen5(
 			printHeader(file, "io"),
-			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/tuples\""),
+			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/utils/tuples\""),
 			writeInternalAndThenFunctions(file, 30),
 			writeInternalIoAccumulateFunctions(file, 30),
 			writeInternalIoBindFunctions(file, 30),

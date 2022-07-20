@@ -2,8 +2,8 @@ package io
 
 import (
 	"context"
-	p "github.com/valentinHenry/giog/pipes"
-	v "github.com/valentinHenry/giog/void"
+	p "github.com/valentinHenry/giog/utils/pipes"
+	v "github.com/valentinHenry/giog/utils/void"
 )
 
 type _IOExitError[A any] struct {

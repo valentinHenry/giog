@@ -589,7 +589,10 @@ func _AsyncAll[T any](_trace *Trace, maxConcurrency o.Option[r.PosInt], asyncIos
 				runAsync: func(toRun func() (v.Void, Cause)) {
 					g.Go(func() error {
 						_, err := toRun()
-						return causeError{err}
+						if err != nil {
+							return causeError{err}
+						}
+						return nil
 					})
 				},
 			}
@@ -709,7 +712,7 @@ func _Once_[T any](_trace *Trace, io IO[T]) IO[VIO] {
 	)
 }
 
-func _Uninterruptible[T any](_trace *Trace, io IO[T]) IO[T] {
+func _Uncancelable[T any](_trace *Trace, io IO[T]) IO[T] {
 	return &_IOUniverseSwitch[T]{
 		trace:         _trace,
 		get:           func(universe *Universe) *Universe { return universe.CloneWithContext(universe.Uninterruptible) },
@@ -718,31 +721,41 @@ func _Uninterruptible[T any](_trace *Trace, io IO[T]) IO[T] {
 	}
 }
 
-func _PartialUninterruptible[T any](_trace *Trace, io func(InterruptibilityContext) IO[T]) IO[T] {
+func _PartialUncancelable[T any](_trace *Trace, io func(CancelabilityContext) IO[T]) IO[T] {
 	return &_IOUniverseSwitch[T]{
 		trace: _trace,
 		get: func(universe *Universe) *Universe {
 			return universe.CloneWithContext(universe.Uninterruptible)
 		},
 		withUniverses: func(old *Universe, new *Universe) IO[T] {
-			return io(InterruptibilityContext{context: old.Context})
+			return io(CancelabilityContext{context: old.Context})
 		},
 		release: func(_ *Universe) {},
 	}
 }
 
-func _RestoreInterruptibility[T any](_trace *Trace, context InterruptibilityContext, io IO[T]) IO[o.Option[T]] {
-	interruptible := _IOUniverseSwitch[T]{
+func _RestoreUncancelability[T any](_trace *Trace, context CancelabilityContext, io IO[T]) IO[T] {
+	cancellable := &_IOUniverseSwitch[T]{
 		trace:         _trace,
 		get:           func(universe *Universe) *Universe { return universe.CloneWithContext(context.context) },
 		withUniverses: func(_ *Universe, _ *Universe) IO[T] { return io },
 		release:       func(_ *Universe) {},
 	}
 
-	return cancelledOpt[T](_trace, &interruptible)
+	return cancellable
 }
 
-type InterruptibilityContext struct {
+func _OnCancelled[T any](_trace *Trace, io IO[T], ifCancelled IO[T]) IO[T] {
+	return _PartialUncancelable(_trace, func(ctx CancelabilityContext) IO[T] {
+		return &_IOOnCancel[T]{
+			trace:    _trace,
+			previous: _RestoreUncancelability(_trace, ctx, io),
+			onCancel: ifCancelled,
+		}
+	})
+}
+
+type CancelabilityContext struct {
 	context context.Context
 }
 
@@ -773,22 +786,21 @@ func _TailRec[A, B any](_trace *Trace, curr A, do func(A) IO[e.Either[A, B]]) IO
 }
 
 func _Bracket[A, B any](_trace *Trace, acquire IO[A], use func(A) IO[B], release func(A) VIO) IO[B] {
-	return _PartialUninterruptible(
+	return _PartialUncancelable(
 		_trace,
-		func(restorer InterruptibilityContext) IO[B] {
+		func(restorer CancelabilityContext) IO[B] {
 			runAndRelease := func(a A) IO[B] {
-				var runAndReleaseUninterruptibe IO[o.Option[B]] = _FoldIOCause(
+				var runAndReleaseUninterruptibe IO[B] = _FoldIOCause(
 					_trace,
-					_RestoreInterruptibility(_trace, restorer, use(a)),
-					func(cause Cause) IO[o.Option[B]] { return _AndThen2(_trace, release(a), exitError[o.Option[B]](cause)) },
-					func(res o.Option[B]) IO[o.Option[B]] { return _As(_trace, release(a), res) },
+					_RestoreUncancelability(_trace, restorer, use(a)),
+					func(cause Cause) IO[B] { return _AndThen2(_trace, release(a), exitError[B](cause)) },
+					func(res B) IO[B] { return _As(_trace, release(a), res) },
 				)
 
-				return _OTSubFoldIO(
+				return _OnCancelled(
 					_trace,
 					runAndReleaseUninterruptibe,
-					exitError[B](makeCancellationCause()), // Rethrowing cancellation
-					_Pure[B],
+					_AndThen2(_trace, release(a), exitError[B](makeCancellationCause())), // Rethrowing cancellation
 				)
 			}
 

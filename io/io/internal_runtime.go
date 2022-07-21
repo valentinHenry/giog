@@ -178,6 +178,10 @@ func (a *_IOAsync[A]) run(universe *Universe) (VIO, *v.Void, Cause) {
 			defer universe.done()
 		}
 		a, c := runEffect(asyncUniverse, a.io)
+		if c != nil {
+			var dummyA A
+			return dummyA, c
+		}
 		return *a, c
 	})
 

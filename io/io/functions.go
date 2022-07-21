@@ -275,8 +275,8 @@ func Once_[T any](io IO[T]) IO[VIO] {
 	return _Once_(getTrace(1), io)
 }
 
-func NonInteruptible[T any](io IO[T]) IO[T] {
-	return _Uninterruptible(getTrace(1), io)
+func Uncancelable[T any](io IO[T]) IO[T] {
+	return _Uncancelable(getTrace(1), io)
 }
 
 func WithContext[T any](fn func(context.Context) IO[T]) IO[T] {
@@ -295,11 +295,15 @@ func Bracket[A, B any](acquire IO[A], use func(A) IO[B], release func(A) VIO) IO
 	return _Bracket(getTrace(1), acquire, use, release)
 }
 
-func PartialUninterruptible[T any](io func(InterruptibilityContext) IO[T]) IO[T] {
-	return _PartialUninterruptible(getTrace(1), io)
+func PartialUncancelable[T any](io func(CancelabilityContext) IO[T]) IO[T] {
+	return _PartialUncancelable(getTrace(1), io)
 }
-func RestoreInterruptibility[T any](context InterruptibilityContext, io IO[T]) IO[o.Option[T]] {
-	return _RestoreInterruptibility(getTrace(1), context, io)
+func RestoreUncancelability[T any](context CancelabilityContext, io IO[T]) IO[T] {
+	return _RestoreUncancelability(getTrace(1), context, io)
+}
+
+func OnCancelled[T any](io IO[T], ifCancelled IO[T]) IO[T] {
+	return _OnCancelled(getTrace(1), io, ifCancelled)
 }
 
 func Blocking[T any](io IO[T]) IO[T] {

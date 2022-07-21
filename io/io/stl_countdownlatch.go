@@ -4,7 +4,6 @@ import (
 	"context"
 	dll "github.com/valentinHenry/giog/utils/collections/double_link_list"
 	v "github.com/valentinHenry/giog/utils/void"
-	r "github.com/valentinHenry/refined"
 	"sync"
 )
 
@@ -22,19 +21,19 @@ type CountDownLatch interface {
 	Await() VIO
 }
 
-func MakeCountDownLatch(nb r.PosInt) IO[CountDownLatch] {
+func MakeCountDownLatch(nb uint) IO[CountDownLatch] {
 	return Pure[CountDownLatch](
 		&countDownLatch{
 			m:                sync.Mutex{},
-			remainingLatches: nb.Value(),
-			waiters:          dll.List[chan any]{},
+			remainingLatches: nb,
+			waiters:          dll.New[chan any](),
 		})
 }
 
 type countDownLatch struct {
 	m                sync.Mutex
-	remainingLatches int
-	waiters          dll.List[chan any]
+	remainingLatches uint
+	waiters          *dll.List[chan any]
 }
 
 func (cl *countDownLatch) Release() VIO {
@@ -77,8 +76,12 @@ func (cl *countDownLatch) Await() VIO {
 		select {
 		case <-ctx.Done():
 			cl.m.Lock()
-			cl.waiters.Remove(waiter)
-			cl.m.Unlock()
+			defer cl.m.Unlock()
+			select {
+			case <-waitingChan:
+			default:
+				cl.waiters.Remove(waiter)
+			}
 			return exitError[v.Void](makeCancellationCause())
 		case <-waitingChan:
 			return Void()

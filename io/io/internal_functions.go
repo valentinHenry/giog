@@ -686,14 +686,14 @@ func _Pair2[T1, T2 any](_trace *Trace, v1 IO[T1], v2 IO[T2]) IO[t.T2[T1, T2]] {
 
 func _Once[T any](_trace *Trace, io IO[T]) IO[IO[T]] {
 	condRef := MakeRef(false)
-	resVar := BoundedQueue[T](r.RefineUnsafe[int, r.Positive](1))
+	resVar := MakeDeferred[T]()
 
-	var getAndUpdate f.Fn2[Ref[bool], Queue[T], IO[T]] = func(condRef Ref[bool], resVar Queue[T]) IO[T] {
+	var getAndUpdate f.Fn2[Ref[bool], Deferred[T], IO[T]] = func(condRef Ref[bool], resVar Deferred[T]) IO[T] {
 		return _IfIO(
 			_trace,
 			condRef.GetAndSet(true),
-			/* ifTrue */ resVar.Head(), // Blocks in case the execution of the effect has not completed yet
-			/* ifFalse */ _FlatTap(_trace, io, resVar.Enqueue),
+			/* ifTrue  */ resVar.Get(), // Blocks in case the execution of the effect has not completed yet
+			/* ifFalse */ _FlatTap(_trace, io, resVar.Complete),
 		)
 	}
 
@@ -734,7 +734,7 @@ func _PartialUncancelable[T any](_trace *Trace, io func(CancelabilityContext) IO
 	}
 }
 
-func _RestoreUncancelability[T any](_trace *Trace, context CancelabilityContext, io IO[T]) IO[T] {
+func _RestoreCancelability[T any](_trace *Trace, context CancelabilityContext, io IO[T]) IO[T] {
 	cancellable := &_IOUniverseSwitch[T]{
 		trace:         _trace,
 		get:           func(universe *Universe) *Universe { return universe.CloneWithContext(context.context) },
@@ -749,7 +749,7 @@ func _OnCancelled[T any](_trace *Trace, io IO[T], ifCancelled IO[T]) IO[T] {
 	return _PartialUncancelable(_trace, func(ctx CancelabilityContext) IO[T] {
 		return &_IOOnCancel[T]{
 			trace:    _trace,
-			previous: _RestoreUncancelability(_trace, ctx, io),
+			previous: _RestoreCancelability(_trace, ctx, io),
 			onCancel: ifCancelled,
 		}
 	})
@@ -792,7 +792,7 @@ func _Bracket[A, B any](_trace *Trace, acquire IO[A], use func(A) IO[B], release
 			runAndRelease := func(a A) IO[B] {
 				var runAndReleaseUninterruptibe IO[B] = _FoldIOCause(
 					_trace,
-					_RestoreUncancelability(_trace, restorer, use(a)),
+					_RestoreCancelability(_trace, restorer, use(a)),
 					func(cause Cause) IO[B] { return _AndThen2(_trace, release(a), exitError[B](cause)) },
 					func(res B) IO[B] { return _As(_trace, release(a), res) },
 				)

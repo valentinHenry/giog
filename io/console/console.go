@@ -4,33 +4,33 @@ import (
 	"bufio"
 	stdfmt "fmt"
 	"github.com/valentinHenry/giog/io/fmt"
-	"github.com/valentinHenry/giog/io/io"
+	. "github.com/valentinHenry/giog/io/io"
 	"os"
 )
 
-func ReadLn() io.IO[string] {
-	return io.Lift(func() (string, error) {
+func ReadLn() IO[string] {
+	return Lift(func() (string, error) {
 		var str string
 		_, err := stdfmt.Scanln(&str)
 		return str, err
 	})
 }
 
-func ReadRune() io.IO[rune] {
-	return io.Lift(func() (rune, error) {
+func ReadRune() IO[rune] {
+	return Lift(func() (rune, error) {
 		r, _, err := bufio.NewReader(os.Stdin).ReadRune()
 		return r, err
 	})
 }
 
-func Printf(format string, a ...any) io.IO[int] {
+func Printf(format string, a ...any) IO[int] {
 	return fmt.Printf(format, a...)
 }
 
-func Print(a ...any) io.IO[int] {
+func Print(a ...any) IO[int] {
 	return fmt.Print(a...)
 }
 
-func Println(a ...any) io.IO[int] {
+func Println(a ...any) IO[int] {
 	return fmt.Println(a...)
 }

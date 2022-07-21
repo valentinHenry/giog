@@ -298,8 +298,8 @@ func Bracket[A, B any](acquire IO[A], use func(A) IO[B], release func(A) VIO) IO
 func PartialUncancelable[T any](io func(CancelabilityContext) IO[T]) IO[T] {
 	return _PartialUncancelable(getTrace(1), io)
 }
-func RestoreUncancelability[T any](context CancelabilityContext, io IO[T]) IO[T] {
-	return _RestoreUncancelability(getTrace(1), context, io)
+func RestoreCancelability[T any](context CancelabilityContext, io IO[T]) IO[T] {
+	return _RestoreCancelability(getTrace(1), context, io)
 }
 
 func OnCancelled[T any](io IO[T], ifCancelled IO[T]) IO[T] {

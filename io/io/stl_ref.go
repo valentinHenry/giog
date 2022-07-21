@@ -17,8 +17,8 @@ type Ref[A any] interface {
 	// Update sets a new value as the updated version of the previous one.
 	Update(func(A) A) VIO
 
-	// TryUpdate tries to set a new value as the updated version of the previous one.
-	// It succeeds if no-one is updating the value
+	// TryUpdate tries to set a new value as the updated version of the previous
+	// one. It succeeds if no-one is updating the value
 	TryUpdate(func(A) A) IO[bool]
 
 	// GetAndSet sets a new value and returns the previous one.
@@ -35,7 +35,7 @@ type Ref[A any] interface {
 func MakeRef[A any](v A) IO[Ref[A]] {
 	return Delay(func() Ref[A] {
 		r := &ref[A]{atomic.Value{}}
-		r.value.Store(v)
+		r.value.Store(&v)
 		return r
 	})
 }
@@ -46,13 +46,13 @@ type ref[A any] struct {
 
 func (r *ref[A]) Get() IO[A] {
 	return Delay(func() A {
-		return r.value.Load().(A)
+		return *r.value.Load().(*A)
 	})
 }
 
 func (r *ref[A]) Set(a A) VIO {
 	return Delay(func() v.Void {
-		r.value.Store(a)
+		r.value.Store(&a)
 		return v.Void{}
 	})
 }
@@ -61,9 +61,9 @@ func (r *ref[A]) Update(fn func(A) A) VIO {
 	update := func() v.Void {
 		cond := false
 		for !cond {
-			oldValue := r.value.Load()
-			newValue := fn(oldValue)
-			cond = r.value.CompareAndSwap(oldValue, newValue)
+			oldValue := r.value.Load().(*A)
+			newValue := fn(*oldValue)
+			cond = r.value.CompareAndSwap(oldValue, &newValue)
 		}
 		return v.Void{}
 	}
@@ -73,23 +73,23 @@ func (r *ref[A]) Update(fn func(A) A) VIO {
 
 func (r *ref[A]) TryUpdate(fn func(A) A) IO[bool] {
 	return Delay(func() bool {
-		oldValue := r.value.Load()
-		newValue := fn(oldValue)
-		return r.value.CompareAndSwap(oldValue, newValue)
+		oldValue := r.value.Load().(*A)
+		newValue := fn(*oldValue)
+		return r.value.CompareAndSwap(oldValue, &newValue)
 	})
 }
 
 func (r *ref[A]) GetAndSet(v A) IO[A] {
 	setValue := func() A {
 		cond := false
-		var oldValue A
+		var oldValue *A
 
 		for !cond {
-			oldValue = r.value.Load()
-			cond = r.value.CompareAndSwap(oldValue, v)
+			oldValue = r.value.Load().(*A)
+			cond = r.value.CompareAndSwap(oldValue, &v)
 		}
 
-		return oldValue
+		return *oldValue
 	}
 
 	return Delay(setValue)
@@ -98,15 +98,15 @@ func (r *ref[A]) GetAndSet(v A) IO[A] {
 func (r *ref[A]) GetAndUpdate(fn func(A) A) IO[A] {
 	setValue := func() A {
 		cond := false
-		var oldValue A
+		var oldValue *A
 
 		for !cond {
-			oldValue = r.value.Load()
-			newValue := fn(oldValue)
-			cond = r.value.CompareAndSwap(oldValue, newValue)
+			oldValue = r.value.Load().(*A)
+			newValue := fn(*oldValue)
+			cond = r.value.CompareAndSwap(oldValue, &newValue)
 		}
 
-		return oldValue
+		return *oldValue
 	}
 
 	return Delay(setValue)
@@ -118,9 +118,9 @@ func (r *ref[A]) UpdateAndGet(fn func(A) A) IO[A] {
 		var newValue A
 
 		for !cond {
-			oldValue := r.value.Load()
-			newValue = fn(oldValue)
-			cond = r.value.CompareAndSwap(oldValue, newValue)
+			oldValue := r.value.Load().(*A)
+			newValue = fn(*oldValue)
+			cond = r.value.CompareAndSwap(oldValue, &newValue)
 		}
 
 		return newValue
@@ -137,9 +137,9 @@ func ModifyRef[A, B any](r Ref[A], modify func(A) (A, B)) IO[B] {
 			var ret B
 
 			for !cond {
-				oldValue := rf.value.Load()
-				newValue, ret = modify(oldValue)
-				cond = rf.value.CompareAndSwap(oldValue, newValue)
+				oldValue := rf.value.Load().(*A)
+				newValue, ret = modify(*oldValue)
+				cond = rf.value.CompareAndSwap(oldValue, &newValue)
 			}
 
 			return ret

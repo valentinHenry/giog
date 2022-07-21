@@ -28,7 +28,7 @@ func MakeDeferred[A any]() IO[Deferred[A]] {
 		return &deferred[A]{
 			m:       sync.Mutex{},
 			v:       v,
-			waiters: dll.List[chan A]{},
+			waiters: dll.New[chan A](),
 		}
 	})
 }
@@ -36,7 +36,7 @@ func MakeDeferred[A any]() IO[Deferred[A]] {
 type deferred[A any] struct {
 	m       sync.Mutex
 	v       *A
-	waiters dll.List[chan A]
+	waiters *dll.List[chan A]
 }
 
 func (d *deferred[A]) Get() IO[A] {
@@ -54,6 +54,7 @@ func (d *deferred[A]) Get() IO[A] {
 		select {
 		case <-ctx.Done():
 			d.m.Lock()
+			defer d.m.Unlock()
 			if d.v == nil {
 				d.waiters.Remove(waiter)
 			}

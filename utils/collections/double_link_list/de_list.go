@@ -36,7 +36,7 @@ func (e *Element[T]) Prev() *Element[T] {
 // The zero value for List is an empty list ready to use.
 type List[T any] struct {
 	root Element[T] // sentinel list element, only &root, root.prev, and root.next are used
-	len  int        // current list length excluding (this) sentinel element
+	len  uint       // current list length excluding (this) sentinel element
 }
 
 // Init initializes or clears list l.
@@ -52,7 +52,7 @@ func New[T any]() *List[T] { return new(List[T]).Init() }
 
 // Len returns the number of elements of list l.
 // The complexity is O(1).
-func (l *List[T]) Len() int { return l.len }
+func (l *List[T]) Len() uint { return l.len }
 
 // Front returns the first element of list l or nil if the list is empty.
 func (l *List[T]) Front() *Element[T] {

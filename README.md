@@ -2,6 +2,30 @@
 
 GioG is a library implementing an IO Monad for Go. It is shipped with other useful monads like `Either` and `Option`.
 
+## Table of contents
+- [IO](#io)
+    - [Why using IO ?](#why-using-io-)
+    - [Basics](#basics)
+    - [Composition Functions](#composition-functions)
+    - [Asynchronicity](#asynchronicity)
+    - [Evaluates the IO](#evaluates-the-io)
+- [RIO](#rio)
+    - [Basics](#basics)
+    - [Composition Functions](#composition-functions)
+- [DataTypes](#datatypes)
+    - [CountDownLatch](#countdownlatch)
+    - [CyclicBarrier](#cyclicbarrier)
+    - [Deferred](#deferred)
+    - [Queue](#queue)
+    - [Ref](#ref)
+    - [Semaphore](#semaphore)
+- [Monads](#monads)
+    - [Either](#either)
+    - [Option](#option)
+- [Helpers](#helpers)
+    - [Functions](#functions)
+    - [Pipes](#pipes)
+    - [Tuples](#tuples)
 ## IO
 ### Why using IO ?
 GioG allow you to write code in a more functional way by encapsulating side effects and by removing the need to be rewriting again and again the following code:
@@ -67,11 +91,12 @@ Hello Paul!
 ### Asynchronicity
 ### Evaluates the IO
 
+## RIO
+### Basics
+### Composition Functions
+
 ## DataTypes
 
-### RIO
-#### Basics
-#### Composition Functions
 
 ---
 ### CountDownLatch
@@ -80,6 +105,8 @@ type CountDownLatch interface {
   Release() VIO
   Await() VIO
 }
+
+func MakeCountDownLatch(nb uint) IO[CountDownLatch]
 ```
 A `CountDownLatch` is an interface that semantically blocks any goroutines
 which waits on it. These are blocked until all defined latches are
@@ -99,7 +126,6 @@ import (
   c "github.com/valentinHenry/giog/io/console"
   "github.com/valentinHenry/giog/io/io"
   p "github.com/valentinHenry/giog/utils/pipes"
-  r "github.com/valentinHenry/refined"
 )
 
 func main() {
@@ -119,7 +145,7 @@ func main() {
   }
 
   mainLogic := p.Pipe8(
-    io.MakeCountDownLatch(r.RefineUnsafe[int, r.Positive](3)),
+    io.MakeCountDownLatch(3),
     io.FlatTapK(func(latch io.CountDownLatch) io.VIO { return io.Fork_(makeWaiter(latch, 1)) }),
     io.FlatTapK(func(latch io.CountDownLatch) io.VIO { return io.Fork_(makeWaiter(latch, 2)) }),
     io.FlatTapK(releaseLatch),
@@ -152,12 +178,15 @@ Releasing a latch
 [5] I'm free!
 [2] I'm free!
 ```
+
 ---
 ### CyclicBarrier
 ```go
 type CyclicBarrier interface {
   Await() VIO
 }
+
+func MakeCyclicBarrier(parties uint) IO[CyclicBarrier]
 ```
 A CyclicBarrier is an interface to a synchronizer which allows goroutines
 to wait for each-others at a fixed point.
@@ -172,7 +201,6 @@ import (
   c "github.com/valentinHenry/giog/io/console"
   "github.com/valentinHenry/giog/io/io"
   p "github.com/valentinHenry/giog/utils/pipes"
-  r "github.com/valentinHenry/refined"
 )
 
 func main() {
@@ -185,7 +213,7 @@ func main() {
   }
 
   mainLogic := p.Pipe6(
-    io.MakeCyclicBarrier(r.RefineUnsafe[int, r.Positive](3)),
+    io.MakeCyclicBarrier(3),
     io.FlatTapK(func(b io.CyclicBarrier) io.VIO { return io.Fork_(makeWaiter(b, 1)) }),
     io.FlatTapK(func(b io.CyclicBarrier) io.VIO { return io.Fork_(makeWaiter(b, 2)) }),
     io.FlatTapK(func(b io.CyclicBarrier) io.VIO { return io.Fork_(makeWaiter(b, 3)) }),
@@ -223,6 +251,8 @@ type Deferred[A any] interface {
   Get() IO[A]
   Complete(A) IO[bool]
 }
+
+func MakeDeferred[A any]() IO[Deferred[A]]
 ```
 Deferred is an interface representing a value which may not be available yet.
 
@@ -306,10 +336,56 @@ Failed to give -1
 
 ---
 ### Queue
+```go
+type Queue[A any] interface {
+  Enqueue(a A) IO[v.Void]
+  TryEnqueue(a A) IO[bool]
+  
+  Dequeue() IO[A]
+  TryDequeue() IO[o.Option[A]]
+}
 
+func BoundedQueue[A any](nb uint) IO[Queue[A]]
+func UnboundedQueue[A any]() IO[Queue[A]]
+func SyncQueue[A any](nb uint) IO[Queue[A]]
+```
+
+Queue is the interface of a concurrent queue
+
+Three implementations are available:
+- **BoundedQueue**: a queue which, when full, will block semantically on Enqueue(A) and return false on TryEnqueue(A)
+- **UnboundedQueue**: a limitless queue
+- **SyncQueue**: a queue which blocks until there is at least one reader and one writer waiting.
+
+#### Example
+// TODO
 
 ### Ref
+```go
+type Ref[A any] interface {
+  Get() IO[A]
+  Set(A) VIO
+  Update(func(A) A) VIO
+  TryUpdate(func(A) A) IO[bool]
+  GetAndSet(A) IO[A]
+  GetAndUpdate(func(A) A) IO[A]
+  UpdateAndGet(func(A) A) IO[A]
+}
+func ModifyRef[A, B any](r Ref[A], modify func(A) (A, B)) IO[B]
+
+func MakeRef[A any](v A) IO[Ref[A]]
+```
+Ref is an interface representing the reference to a value.
+
+A Ref always references a value.
+
+#### Example
+// TODO
+
 ### Semaphore
+// TODO
+#### Example
+// TODO
 
 ## Monads
 ### Either

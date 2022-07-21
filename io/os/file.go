@@ -1,24 +1,24 @@
 package os
 
 import (
-	"github.com/valentinHenry/giog/io/io"
+	. "github.com/valentinHenry/giog/io/io"
 	stdos "os"
 )
 
 // TODO add a functional interface to File
 
-func Open(name string) io.RIO[*File] {
+func Open(name string) RIO[*File] {
 	return OpenFile(name, O_RDONLY, 0)
 }
 
-func Create(name string) io.RIO[*File] {
+func Create(name string) RIO[*File] {
 	return OpenFile(name, O_RDWR|O_CREATE|O_TRUNC, 0666)
 }
 
-func OpenFile(name string, flag int, perm FileMode) io.RIO[*File] {
-	return io.MakeRIO(
-		io.Lift(func() (*stdos.File, error) { return stdos.OpenFile(name, flag, perm) }),
-		func(file *stdos.File) io.VIO { return io.LiftV(file.Close) },
+func OpenFile(name string, flag int, perm FileMode) RIO[*File] {
+	return MakeRIO(
+		Lift(func() (*stdos.File, error) { return stdos.OpenFile(name, flag, perm) }),
+		func(file *stdos.File) VIO { return LiftV(file.Close) },
 	)
 }
 

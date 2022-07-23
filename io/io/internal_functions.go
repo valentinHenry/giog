@@ -81,38 +81,33 @@ func _AsK[T1, T2 any](_trace *Trace, v T2) func(IO[T1]) IO[T2] {
 	return _MapK(_trace, func(t T1) T2 { return v })
 }
 
-func _Absolve[T any](_trace *Trace, io func() IO[e.Either[error, T]]) IO[T] {
+func _Absolve[T any](_trace *Trace, io IO[e.Either[error, T]]) IO[T] {
+	return _FlatMap(_trace, io, _FromEitherK[T](_trace))
+}
+
+func _FromEither[T any](_trace *Trace, either e.Either[error, T]) IO[T] {
+	return e.Fold(either, raiseK[T](_trace), exitSuccess[T])
+}
+
+func _FromEitherK[T any](_trace *Trace) func(e.Either[error, T]) IO[T] {
+	return func(in e.Either[error, T]) IO[T] {
+		return _FromEither(_trace, in)
+	}
+}
+
+func _FromEitherDefer[T any](_trace *Trace, io func() IO[e.Either[error, T]]) IO[T] {
 	return _FlatMap(
 		_trace,
 		_Defer(_trace, io),
-		func(either e.Either[error, T]) IO[T] {
-			return e.Fold(either, raiseK[T](_trace), exitSuccess[T])
-		})
-}
-func _AbsolveK[T any](_trace *Trace) func(func() IO[e.Either[error, T]]) IO[T] {
-	return p.Pipe2K(
-		_DeferK[e.Either[error, T]](_trace),
-		_FlatMapK[e.Either[error, T], T](_trace, func(either e.Either[error, T]) IO[T] {
-			return e.Fold(either, raiseK[T](_trace), exitSuccess[T])
-		}),
+		_FromEitherK[T](_trace),
 	)
 }
 
-func _FromEither[T any](_trace *Trace, either func() e.Either[error, T]) IO[T] {
+func _FromEitherDelay[T any](_trace *Trace, either func() e.Either[error, T]) IO[T] {
 	return _FlatMap(
 		_trace,
 		_Delay(_trace, either),
-		func(either e.Either[error, T]) IO[T] {
-			return e.Fold(either, raiseK[T](_trace), exitSuccess[T])
-		},
-	)
-}
-func _FromEitherK[T any](_trace *Trace) func(func() e.Either[error, T]) IO[T] {
-	return p.Pipe2K(
-		succeedSyncK[e.Either[error, T]](_trace),
-		_FlatMapK[e.Either[error, T], T](_trace, func(either e.Either[error, T]) IO[T] {
-			return e.Fold(either, raiseK[T](_trace), exitSuccess[T])
-		}),
+		_FromEitherK[T](_trace),
 	)
 }
 
@@ -615,7 +610,7 @@ func (e causeError) Error() string { return e.cause.Cause().Error() }
 
 type AsyncAllRun func(VIO) VIO
 
-func _Fork[A any](_trace *Trace, io IO[A]) IO[IO[A]] {
+func _Go[A any](_trace *Trace, io IO[A]) IO[IO[A]] {
 	return _WithContext(
 		_trace,
 		func(ctx context.Context) IO[IO[A]] {
@@ -638,18 +633,18 @@ func _Fork[A any](_trace *Trace, io IO[A]) IO[IO[A]] {
 				},
 			}
 
-			var waitForResult IO[A] = _Blocking(_trace,
-				_Defer(_trace,
-					func() IO[A] {
-						select {
-						case res := <-resChan:
-							return e.Fold(res,
-								func(c Cause) IO[A] { return exitError[A](c) },
-								func(v A) IO[A] { return _Pure(v) },
-							)
-						}
-					},
-				),
+			var waitForResult IO[A] = _Defer(_trace,
+				func() IO[A] {
+					select {
+					case <-ctx.Done():
+						return exitError[A](makeCancellationCause())
+					case res := <-resChan:
+						return e.Fold(res,
+							func(c Cause) IO[A] { return exitError[A](c) },
+							func(v A) IO[A] { return _Pure(v) },
+						)
+					}
+				},
 			)
 
 			return _As(_trace, runAsync, waitForResult)
@@ -657,7 +652,7 @@ func _Fork[A any](_trace *Trace, io IO[A]) IO[IO[A]] {
 	)
 }
 
-func _UnsafeForkAndForget[A any](_trace *Trace, io IO[A]) VIO {
+func _UnsafeGo_[A any](_trace *Trace, io IO[A]) VIO {
 	return _WithContext(
 		_trace,
 		func(ctx context.Context) VIO {

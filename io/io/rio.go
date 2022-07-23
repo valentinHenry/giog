@@ -5,6 +5,7 @@ import (
 	v "github.com/valentinHenry/giog/utils/void"
 )
 
+// RIO is an Effect allowing to acquire a resource, do some actions then releasing it.
 type RIO[A any] interface {
 	use() IO[t.T2[A, VIO]]
 }

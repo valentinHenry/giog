@@ -23,9 +23,9 @@ func ReadRune() IO[rune] {
 	})
 }
 
-func Printf(format string, a ...any) IO[int] {
-	return fmt.Printf(format, a...)
-}
+//func Printf(format string, a ...any) IO[int] {
+//	return fmt.Printf(format, a...)
+//}
 
 func Print(a ...any) IO[int] {
 	return fmt.Print(a...)

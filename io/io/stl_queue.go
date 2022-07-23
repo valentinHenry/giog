@@ -9,19 +9,15 @@ import (
 	"sync"
 )
 
-// Queue is an interface to a concurrent queue
-//
-// Three implementations are available:
-//
-// - BoundedQueue:
-// A queue which, when full, will block semantically on Enqueue(A) and return
-// false on TryEnqueue(A)
-//
-// - UnboundedQueue:
-// A limitless queue
-//
-// - SyncQueue
-// A queue which requires at least one reader to enqueue a value.
+/*
+Queue is an interface to a concurrent queue
+
+ Three implementations are available:
+ - BoundedQueue: A queue which, when full, will block semantically on Enqueue(A)
+   and return false on TryEnqueue(A)
+ - UnboundedQueue: A limitless queue
+ - SyncQueue: A queue which requires at least one reader to enqueue a value.
+*/
 type Queue[A any] interface {
 	// Enqueue enqueues a value, semantically blocks in case there is no available
 	// place.
@@ -96,7 +92,7 @@ type queue[A any] struct {
 func (q *queue[A]) Enqueue(a A) VIO {
 	return WithContext(func(ctx context.Context) VIO {
 		q.m.Lock()
-		if q.elts.Len() < q.maxLength+q.dequeueWaiters.Len() {
+		if q.elts.Len() < q.maxLength+q.dequeueWaiters.Len() && q.enqueueWaiters.Len() == 0 {
 			q.elts.PushBack(a)
 			q.notifyNextDequeueWaiter()
 			q.m.Unlock()
@@ -148,7 +144,7 @@ func (q *queue[A]) TryEnqueue(a A) IO[bool] {
 func (q *queue[A]) Dequeue() IO[A] {
 	return WithContext(func(ctx context.Context) IO[A] {
 		q.m.Lock()
-		if int64(q.elts.Len()) > -int64(q.enqueueWaiters.Len()) {
+		if int64(q.elts.Len()) > -int64(q.enqueueWaiters.Len()) && q.dequeueWaiters.Len() == 0 {
 			q.notifyNextEnqueueWaiter()
 			f := q.elts.Front()
 			q.elts.Remove(f)

@@ -17,13 +17,13 @@ type CyclicBarrier interface {
 // MakeCyclicBarrier creates a CyclicBarrier. It takes the number of goroutines
 // which must wait before all the waiters are released.
 func MakeCyclicBarrier(parties uint) IO[CyclicBarrier] {
-	return Pure[CyclicBarrier](
-		&cyclicBarrier{
+	return Delay[CyclicBarrier](func() CyclicBarrier {
+		return &cyclicBarrier{
 			waiters: dll.New[chan any](),
 			parties: parties,
 			m:       sync.Mutex{},
-		},
-	)
+		}
+	})
 }
 
 type cyclicBarrier struct {

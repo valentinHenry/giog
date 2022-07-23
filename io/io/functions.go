@@ -11,18 +11,14 @@ import (
 	"time"
 )
 
+// Map modifies the value inside the io by applying the mapping function.
 func Map[T1, T2 any](io IO[T1], mapFn func(T1) T2) IO[T2] {
 	return _Map(getTrace(1), io, mapFn)
 }
+
+// MapK is the K version of Map.
 func MapK[T1, T2 any](mapFn func(T1) T2) func(IO[T1]) IO[T2] {
 	return _MapK(getTrace(1), mapFn)
-}
-
-func MapBoth[T1, T2 any](io IO[T1], onError func(error) error, onSuccess func(T1) T2) IO[T2] {
-	return _MapBoth(getTrace(1), io, onError, onSuccess)
-}
-func MapBothK[T1, T2 any](onError func(error) error, onSuccess func(T1) T2) func(IO[T1]) IO[T2] {
-	return _MapBothK(getTrace(1), onError, onSuccess)
 }
 
 func FlatMap[T1, T2 any](io IO[T1], mapFn func(T1) IO[T2]) IO[T2] {
@@ -37,6 +33,13 @@ func FlatTap[T1, T2 any](io IO[T1], mapFn func(T1) IO[T2]) IO[T1] {
 }
 func FlatTapK[T1, T2 any](mapFn func(T1) IO[T2]) func(IO[T1]) IO[T1] {
 	return _FlatTapK(getTrace(1), mapFn)
+}
+
+func MapBoth[T1, T2 any](io IO[T1], onError func(error) error, onSuccess func(T1) T2) IO[T2] {
+	return _MapBoth(getTrace(1), io, onError, onSuccess)
+}
+func MapBothK[T1, T2 any](onError func(error) error, onSuccess func(T1) T2) func(IO[T1]) IO[T2] {
+	return _MapBothK(getTrace(1), onError, onSuccess)
 }
 
 func Flatten[T any](io IO[IO[T]]) IO[T] {
@@ -56,18 +59,21 @@ func AsK[T1, T2 any](v T2) func(IO[T1]) IO[T2] {
 	return _AsK[T1, T2](getTrace(1), v)
 }
 
-func Absolve[T any](io func() IO[e.Either[error, T]]) IO[T] {
+func Absolve[T any](io IO[e.Either[error, T]]) IO[T] {
 	return _Absolve(getTrace(1), io)
 }
-func AbsolveK[T any]() func(func() IO[e.Either[error, T]]) IO[T] {
-	return _AbsolveK[T](getTrace(1))
-}
 
-func FromEither[T any](either func() e.Either[error, T]) IO[T] {
+func FromEither[T any](either e.Either[error, T]) IO[T] {
 	return _FromEither(getTrace(1), either)
 }
-func FromEitherK[T any]() func(func() e.Either[error, T]) IO[T] {
+func FromEitherK[T any]() func(e.Either[error, T]) IO[T] {
 	return _FromEitherK[T](getTrace(1))
+}
+func FromEitherDelay[T any](either func() e.Either[error, T]) IO[T] {
+	return _FromEitherDelay(getTrace(1), either)
+}
+func FromEitherDefer[T any](either func() IO[e.Either[error, T]]) IO[T] {
+	return _FromEitherDefer(getTrace(1), either)
 }
 
 func Pure[T any](v T) IO[T] {
@@ -279,6 +285,21 @@ func Uncancelable[T any](io IO[T]) IO[T] {
 	return _Uncancelable(getTrace(1), io)
 }
 
+func PartialUncancelable[T any](io func(CancelabilityContext) IO[T]) IO[T] {
+	return _PartialUncancelable(getTrace(1), io)
+}
+func RestoreCancelability[T any](context CancelabilityContext, io IO[T]) IO[T] {
+	return _RestoreCancelability(getTrace(1), context, io)
+}
+
+func OnCancelled[T any](io IO[T], ifCancelled IO[T]) IO[T] {
+	return _OnCancelled(getTrace(1), io, ifCancelled)
+}
+
+func Blocking[T any](io IO[T]) IO[T] {
+	return _Blocking(getTrace(1), io)
+}
+
 func WithContext[T any](fn func(context.Context) IO[T]) IO[T] {
 	return _WithContext[T](getTrace(1), fn)
 }
@@ -295,35 +316,20 @@ func Bracket[A, B any](acquire IO[A], use func(A) IO[B], release func(A) VIO) IO
 	return _Bracket(getTrace(1), acquire, use, release)
 }
 
-func PartialUncancelable[T any](io func(CancelabilityContext) IO[T]) IO[T] {
-	return _PartialUncancelable(getTrace(1), io)
-}
-func RestoreCancelability[T any](context CancelabilityContext, io IO[T]) IO[T] {
-	return _RestoreCancelability(getTrace(1), context, io)
-}
-
-func OnCancelled[T any](io IO[T], ifCancelled IO[T]) IO[T] {
-	return _OnCancelled(getTrace(1), io, ifCancelled)
-}
-
-func Blocking[T any](io IO[T]) IO[T] {
-	return _Blocking(getTrace(1), io)
-}
-
 func AsyncAll[T any](maxConcurrency o.Option[r.PosInt], asyncIos func(RunAsync AsyncAllRun) VIO, yield IO[T]) IO[T] {
 	return _AsyncAll(getTrace(1), maxConcurrency, asyncIos, yield)
 }
 
-func Fork_[A any](io IO[A]) VIO {
-	return _Fork(getTrace(1), io).Void()
+func Go_[A any](io IO[A]) VIO {
+	return _Go(getTrace(1), io).Void()
 }
 
-func Fork[A any](io IO[A]) IO[IO[A]] {
-	return _Fork(getTrace(1), io)
+func Go[A any](io IO[A]) IO[IO[A]] {
+	return _Go(getTrace(1), io)
 }
 
-func UnsafeForkAndForget[A any](io IO[A]) VIO {
-	return _UnsafeForkAndForget(getTrace(1), io)
+func UnsafeGo_[A any](io IO[A]) VIO {
+	return _UnsafeGo_(getTrace(1), io)
 }
 
 func Timed[A any](io IO[A]) IO[t.T2[time.Duration, A]] {
@@ -332,6 +338,13 @@ func Timed[A any](io IO[A]) IO[t.T2[time.Duration, A]] {
 
 func Void() VIO { return _Pure(v.Void{}) }
 
-func AndThenK[A any](io IO[A]) func(any) IO[A] {
-	return func(a any) IO[A] { return io }
+func AndThenK[In, A any](io IO[A]) func(IO[In]) IO[A] {
+	return func(a IO[In]) IO[A] { return io }
+}
+
+func AndThenTapK[In, A any](io IO[A]) func(IO[In]) IO[In] {
+	_trace := getTrace(1)
+	return func(in IO[In]) IO[In] {
+		return _FlatTap(_trace, in, func(_ In) IO[A] { return io })
+	}
 }

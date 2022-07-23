@@ -22,12 +22,13 @@ type CountDownLatch interface {
 }
 
 func MakeCountDownLatch(nb uint) IO[CountDownLatch] {
-	return Pure[CountDownLatch](
-		&countDownLatch{
+	return Delay[CountDownLatch](func() CountDownLatch {
+		return &countDownLatch{
 			m:                sync.Mutex{},
 			remainingLatches: nb,
 			waiters:          dll.New[chan any](),
-		})
+		}
+	})
 }
 
 type countDownLatch struct {

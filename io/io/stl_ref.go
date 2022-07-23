@@ -80,19 +80,7 @@ func (r *ref[A]) TryUpdate(fn func(A) A) IO[bool] {
 }
 
 func (r *ref[A]) GetAndSet(v A) IO[A] {
-	setValue := func() A {
-		cond := false
-		var oldValue *A
-
-		for !cond {
-			oldValue = r.value.Load().(*A)
-			cond = r.value.CompareAndSwap(oldValue, &v)
-		}
-
-		return *oldValue
-	}
-
-	return Delay(setValue)
+	return Delay(func() A { return *r.value.Swap(v).(*A) })
 }
 
 func (r *ref[A]) GetAndUpdate(fn func(A) A) IO[A] {

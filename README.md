@@ -161,6 +161,7 @@ func Defer[T any](io func() IO[T]) IO[T]
 func WithContext[T any](fn func(context.Context) IO[T]) IO[T]
 // Other
 func Void() VIO
+func FromGo[A any](fn func(ctx context.Context, callback func(A, error))) IO[A]
 ```
 
 #### Error Handling

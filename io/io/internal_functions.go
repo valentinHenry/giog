@@ -841,3 +841,22 @@ func _Timed[A any](_trace *Trace, io IO[A]) IO[t.T2[time.Duration, A]] {
 
 	return _Map(_trace, runWithTime, withDuration.Tupled)
 }
+
+func _FromGo[A any](_trace *Trace, fn func(ctx context.Context, callback func(A, error))) IO[A] {
+	return _WithContext(_trace, func(ctx context.Context) IO[A] {
+		resChan := make(chan e.Either[error, A])
+
+		callback := func(res A, error error) {
+			resChan <- e.FromResult(error, res)
+		}
+
+		fn(ctx, callback)
+
+		select {
+		case <-ctx.Done():
+			return exitError[A](makeCancellationCause())
+		case r := <-resChan:
+			return _FromEither(_trace, r)
+		}
+	})
+}

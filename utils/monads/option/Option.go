@@ -91,3 +91,10 @@ func GetOrElse[A any](o Option[A], ifEmpty A) A {
 func GetOrElseK[A any](ifEmpty A) func(Option[A]) A {
 	return func(o Option[A]) A { return o.GetOrElse(ifEmpty) }
 }
+
+func Of[T any](v T) Option[T] {
+	if v == nil {
+		return None[T]{}
+	}
+	return Some[T]{v}
+}

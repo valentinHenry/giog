@@ -348,3 +348,10 @@ func AndThenTapK[In, A any](io IO[A]) func(IO[In]) IO[In] {
 		return _FlatTap(_trace, in, func(_ In) IO[A] { return io })
 	}
 }
+
+// FromGo must be used in case a result from a go-ed function outside of the IO runtime is required
+//
+// The callback function must be called when the result of the goroutine is available
+func FromGo[A any](fn func(ctx context.Context, callback func(A, error))) IO[A] {
+	return _FromGo(getTrace(1), fn)
+}

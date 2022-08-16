@@ -15,21 +15,21 @@ func WriteAll(root string) io.VIO {
 		).Void()
 	}
 
-	writePipesFile := io.UseRIO(os.Create(fmt.Sprint(root, "pipes/pipes.go")), func(file *os.File) io.VIO {
+	writePipesFile := io.UseRIO(os.Create(fmt.Sprint(root, "utils/pipes/pipes.go")), func(file *os.File) io.VIO {
 		return io.AndThen2(
 			printHeader(file, "pipes"),
 			writePipesFunctions(file, 50),
 		)
 	})
 
-	writeTuplesFile := io.UseRIO(os.Create(fmt.Sprint(root, "tuples/tuples.go")), func(file *os.File) io.VIO {
+	writeTuplesFile := io.UseRIO(os.Create(fmt.Sprint(root, "utils/tuples/tuples.go")), func(file *os.File) io.VIO {
 		return io.AndThen2(
 			printHeader(file, "tuples"),
 			writeTuplesFunctions(file, 30),
 		)
 	})
 
-	writeFunctionsFile := io.UseRIO(os.Create(fmt.Sprint(root, "functions/functions.go")), func(file *os.File) io.VIO {
+	writeFunctionsFile := io.UseRIO(os.Create(fmt.Sprint(root, "utils/functions/functions.go")), func(file *os.File) io.VIO {
 		return io.AndThen3(
 			printHeader(file, "functions"),
 			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/utils/tuples\""),
@@ -57,13 +57,23 @@ func WriteAll(root string) io.VIO {
 		)
 	})
 
-	return io.AndThen7(
+	writeOptionCompositionsFile := io.UseRIO(os.Create(fmt.Sprint(root, "utils/monads/option/compositions.go")), func(file *os.File) io.VIO {
+		return io.AndThen4(
+			printHeader(file, "option"),
+			iofmt.Fprintln(file, "import \"github.com/valentinHenry/giog/utils/tuples\""),
+			writeOptionAccumulateFunctions(file, 30),
+			writeOptionBindFunctions(file, 30),
+		)
+	})
+
+	return io.AndThen8(
 		iofmt.Println("Starting writing files"),
 		writePipesFile,
 		writeTuplesFile,
 		writeFunctionsFile,
 		writeIoCompositionsFile,
 		writeIoInternalCompositionsFile,
+		writeOptionCompositionsFile,
 		iofmt.Println("Done"),
 	).Void()
 }

@@ -256,6 +256,99 @@ func _bindRIOYN(curr int) string {
 	)
 }
 
+func bindOptionBody(curr int, until int) string {
+	if curr == until {
+		return fmt.Sprintf(
+			"Map(v%d(%s), func (v%d T%d) tuples.T%d[%s] {return tuples.Of%d(%s)})",
+			curr,
+			typeParams(curr-1, "v"),
+			curr,
+			curr,
+			curr,
+			typeParams(curr, "T"),
+			curr,
+			typeParams(curr, "v"),
+		)
+	}
+
+	if curr == 1 {
+		return fmt.Sprintf(
+			"FlatMap(v%d, func (v%d T%d) Option[tuples.T%d[%s]] { return %s })",
+			curr,
+			curr,
+			curr,
+			until,
+			typeParams(until, "T"),
+			bindOptionBody(curr+1, until),
+		)
+	}
+
+	return fmt.Sprintf(
+		"FlatMap(v%d(%s), func (v%d T%d) Option[tuples.T%d[%s]] { return %s })",
+		curr,
+		typeParams(curr-1, "v"),
+		curr,
+		curr,
+		until,
+		typeParams(until, "T"),
+		bindOptionBody(curr+1, until),
+	)
+}
+
+func bindOptionN(curr int) string {
+	return fmt.Sprintf(
+		"func Bind%d[%s any](%s) Option[tuples.T%d[%s]] {return %s}",
+		curr,
+		typeParams(curr, "T"),
+		bindParams(curr, "Option"),
+		curr,
+		typeParams(curr, "T"),
+		bindOptionBody(1, curr),
+	)
+}
+
+func bindOptionYBody(curr int, until int) string {
+	if curr == until {
+		return fmt.Sprintf(
+			"v%d(%s)",
+			curr,
+			typeParams(curr-1, "v"),
+		)
+	}
+
+	if curr == 1 {
+		return fmt.Sprintf(
+			"FlatMap(v%d, func (v%d T%d) Option[T%d] { return %s })",
+			curr,
+			curr,
+			curr,
+			until,
+			bindOptionYBody(curr+1, until),
+		)
+	}
+
+	return fmt.Sprintf(
+		"FlatMap(v%d(%s), func (v%d T%d) Option[T%d] { return %s })",
+		curr,
+		typeParams(curr-1, "v"),
+		curr,
+		curr,
+		until,
+		bindOptionYBody(curr+1, until),
+	)
+}
+
+func bindOptionYN(curr int) string {
+	return fmt.Sprintf(
+		"func BindY%d[%s any](%s) Option[T%d] {return %s}",
+		curr,
+		typeParams(curr, "T"),
+		bindParams(curr, "Option"),
+		curr,
+		bindOptionYBody(1, curr),
+	)
+}
+
 func writeIoBindFunctions(file fio.Writer, nbFuncs int) io.VIO {
 	return io.AndThen4(
 		PrintAllN(file, 2, nbFuncs, func(i int) string { return bindION(i) }),
@@ -270,5 +363,12 @@ func writeInternalIoBindFunctions(file fio.Writer, nbFuncs int) io.VIO {
 		PrintAllN(file, 2, nbFuncs, func(i int) string { return _bindRION(i) }),
 		PrintAllN(file, 2, nbFuncs, func(i int) string { return _bindIOYN(i) }),
 		PrintAllN(file, 2, nbFuncs, func(i int) string { return _bindRIOYN(i) }),
+	)
+}
+
+func writeOptionBindFunctions(file fio.Writer, nbFuncs int) io.VIO {
+	return io.AndThen2(
+		PrintAllN(file, 2, nbFuncs, func(i int) string { return bindOptionN(i) }),
+		PrintAllN(file, 2, nbFuncs, func(i int) string { return bindOptionYN(i) }),
 	)
 }

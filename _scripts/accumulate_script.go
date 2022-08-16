@@ -123,6 +123,43 @@ func _accumulateRION(curr int) string {
 	)
 }
 
+func accumulateOptionBody(curr int, until int) string {
+	if curr == until {
+		return fmt.Sprintf(
+			"Map(v%d, func (v%d T%d) tuples.T%d[%s] {return tuples.Of%d(%s)})",
+			curr,
+			curr,
+			curr,
+			curr,
+			typeParams(curr, "T"),
+			curr,
+			typeParams(curr, "v"),
+		)
+	}
+
+	return fmt.Sprintf(
+		"FlatMap(v%d, func (v%d T%d) Option[tuples.T%d[%s]] { return %s })",
+		curr,
+		curr,
+		curr,
+		until,
+		typeParams(until, "T"),
+		accumulateOptionBody(curr+1, until),
+	)
+}
+
+func accumulateOptionN(curr int) string {
+	return fmt.Sprintf(
+		"func Accumulate%d[%s any](%s) Option[tuples.T%d[%s]] {return %s}",
+		curr,
+		typeParams(curr, "T"),
+		accumulateParams(curr, "Option"),
+		curr,
+		typeParams(curr, "T"),
+		accumulateOptionBody(1, curr),
+	)
+}
+
 func writeIoAccumulateFunctions(file fio.Writer, nbFuncs int) io.VIO {
 	return io.AndThen2(
 		PrintAllN(file, 2, nbFuncs, func(i int) string { return accumulateION(i) }),
@@ -135,4 +172,8 @@ func writeInternalIoAccumulateFunctions(file fio.Writer, nbFuncs int) io.VIO {
 		PrintAllN(file, 2, nbFuncs, func(i int) string { return _accumulateION(i) }),
 		PrintAllN(file, 2, nbFuncs, func(i int) string { return _accumulateRION(i) }),
 	)
+}
+
+func writeOptionAccumulateFunctions(file fio.Writer, nbFuncs int) io.VIO {
+	return PrintAllN(file, 2, nbFuncs, func(i int) string { return accumulateOptionN(i) })
 }
